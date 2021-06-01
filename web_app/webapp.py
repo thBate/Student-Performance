@@ -10,11 +10,11 @@ of highschool, etc. using machine learning
 import pandas as pd
 from math import sqrt
 import streamlit as st
+from joblib import load
 from cpadapter import Adapt_to_CP
 from sklearn.metrics import mean_squared_error
 from cpadapter.utils import train_cal_test_split
 from sklearn.neighbors import KNeighborsRegressor
-# from cpadapter.visualization import band_interval_plot, line_interval_plot
 from cpadapter.performance_measures import picp, relative_mean_width
 
 
@@ -85,9 +85,8 @@ def get_user_input():
 
 
 # Create and train ML model
-kn = KNeighborsRegressor()
+kn = load('knneighbors.joblib')
 adapted_kn = Adapt_to_CP(kn, True)
-adapted_kn.fit(x_train, y_train)
 
 # Show models metrics
 prediction_kn = adapted_kn.calibrate_and_predict(x_cal, y_cal, x_test, 0.8)
