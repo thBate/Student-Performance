@@ -7,6 +7,7 @@ of highschool, etc. using machine learning
 
 # imports
 
+import os
 import base64
 import pandas as pd
 from math import sqrt
@@ -29,7 +30,7 @@ Predecir cómo le irá a un alumno en la prueba de comprensión lectora
 #image (no image yet)
 
 # get data
-path = ('D:/Users/Diego/Documents/11voSemestre/Taller de Diseño/Student-Performance/Data/clean_data.csv')
+path = (os.getcwd()+'/Data/clean_data.csv')
 df = pd.read_csv(path)
 df.drop(columns=['Unnamed: 0'], inplace=True)
 
@@ -87,7 +88,7 @@ def get_user_input():
 
 
 # Create and train ML model
-kn = load('knneighbors.joblib')
+kn = load(os.getcwd()+'/web_app/knneighbors.joblib')
 adapted_kn = Adapt_to_CP(kn, True)
 
 # Show models metrics
