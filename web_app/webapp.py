@@ -7,8 +7,10 @@ of highschool, etc. using machine learning
 
 # imports
 
+import base64
 import pandas as pd
 from math import sqrt
+import numpy as np
 import streamlit as st
 from joblib import load
 from cpadapter import Adapt_to_CP
@@ -16,18 +18,18 @@ from sklearn.metrics import mean_squared_error
 from cpadapter.utils import train_cal_test_split
 from sklearn.neighbors import KNeighborsRegressor
 from cpadapter.performance_measures import picp, relative_mean_width
+import plotly.graph_objects as go
 
 
 # title and subtitle
 st.write("""
 # EstudiAntes
-Predecir cómo le irá a un alumno en la prueba de comprención lectora
+Predecir cómo le irá a un alumno en la prueba de comprensión lectora
 """)
 #image (no image yet)
 
 # get data
-path = ('/Users/jesu/Desktop/Universidad/11vo Semestre/Taller de Diseño/'
-        'Proyecto/Student-Performance/Data/clean_data.csv')
+path = ('D:/Users/Diego/Documents/11voSemestre/Taller de Diseño/Student-Performance/Data/clean_data.csv')
 df = pd.read_csv(path)
 df.drop(columns=['Unnamed: 0'], inplace=True)
 
@@ -118,3 +120,19 @@ st.subheader('Límite inferior predicho:')
 st.write(str(round(lb_user[0]* 100, 2)) + '%')
 st.subheader('Límite superior predicho:')
 st.write(str(round(ub_user[0]* 100, 2)) + '%')
+
+# Test Plot
+fig = go.Figure(data=[go.Surface(z=np.random.rand(30,20))])
+fig.update_layout(title='Plot Prueba', autosize=False,
+                  width=800, height=800,
+                  margin=dict(l=40, r=40, b=40, t=40))
+st.plotly_chart(fig)
+
+# Download Results
+def get_table_download_link(df):
+    csv = df.to_csv(index=False)
+    b64 = base64.b64encode(csv.encode()).decode()  
+    href = f'<a href="data:file/csv;base64,{b64}" download="Resultados.csv">Descargar Resultados</a>'
+    return href
+
+st.markdown(get_table_download_link(df), unsafe_allow_html=True)
