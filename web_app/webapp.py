@@ -108,8 +108,10 @@ def get_user_input_mult():
     if datos is not None:
         df_input = pd.read_csv(datos)
         df_input.columns = df_input.columns.str.lower()
-        df_input['tipo de establecimiento'].replace(dict_extablecimiento, inplace=True)
-        df_input['via de ingreso'].replace(dict_ingreso, inplace=True)
+        new_establecimiento = dict([(value, key) for key, value in dict_extablecimiento.items()])
+        new_ingreso = dict([(value, key) for key, value in dict_ingreso.items()])
+        df_input['tipo de establecimiento'].replace(new_establecimiento, inplace=True)
+        df_input['via de ingreso'].replace(new_ingreso, inplace=True)
         return df_input
     else:
         return pd.DataFrame()
@@ -141,7 +143,7 @@ else:
 if user_features.empty:
     st.write('Aún no se han ingresado datos')
 else:
-    st.subheader('Datos ingresados de el/la estudiante:')
+    st.subheader('Datos ingresados de los estudiantes:')
     st.write(user_features.head())
     preds_user = adapted_kn.predict(user_features.values, 0.8)
     lb_user = preds_user[0]
@@ -158,9 +160,9 @@ if single_mult == '1':
     st.write(str(round(ub_user[0]* 100, 2)) + '%')
 else:
     if not user_features.empty:
-        user_features['prediccion de logro'] = round(pred_user*100, 2)
-        user_features['limite inferior'] = round(lb_user*100, 2)
-        user_features['limite superior'] = round(ub_user*100, 2)
+        user_features['prediccion de logro'] = np.around(pred_user*100, 2)
+        user_features['limite inferior'] = np.around(lb_user*100, 2)
+        user_features['limite superior'] = np.around(ub_user*100, 2)
 # Test Plot
 if single_mult == '1':
     fig = go.Figure(data=[go.Surface(z=np.random.rand(30,20))])
@@ -170,11 +172,11 @@ if single_mult == '1':
     st.plotly_chart(fig)
 else:
     if not user_features.empty:
-        fig = ff.create_distplot(
-            user_features['prediccion de logro'],
-            'desempeño predicho'
-        )
-        st.plotly_chart(fig, user_container_width=True)
+        # fig = ff.create_distplot(
+        #     user_features['prediccion de logro'],
+        #     'desempeño predicho'
+        # )
+        # st.plotly_chart(fig, user_container_width=True)
         # Download Results
         def get_table_download_link(df):
             csv = df.to_csv(index=False)
