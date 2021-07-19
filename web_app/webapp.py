@@ -24,7 +24,7 @@ from cpadapter.performance_measures import picp, relative_mean_width
 
 # title and subtitle
 st.write("""
-# EstudiAntes
+# 4Students
 Predecir cómo le irá a un alumno en la prueba de comprensión lectora
 """)
 #image (no image yet)
