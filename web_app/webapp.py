@@ -14,20 +14,27 @@ from math import sqrt
 import numpy as np
 import streamlit as st
 from joblib import load
+import plotly.graph_objects as go
 from cpadapter import Adapt_to_CP
+import plotly.figure_factory as ff
 from sklearn.metrics import mean_squared_error
 from cpadapter.utils import train_cal_test_split
 from sklearn.neighbors import KNeighborsRegressor
 from cpadapter.performance_measures import picp, relative_mean_width
-import plotly.graph_objects as go
 
 
 # title and subtitle
 st.write("""
-# EstudiAntes
+# 4Students
 Predecir cómo le irá a un alumno en la prueba de comprensión lectora
 """)
 #image (no image yet)
+
+# single or multiple inputs
+single_mult = st.sidebar.selectbox(
+    'Cantidad de alumnos',
+    ('1', '2 o más')
+)
 
 # get data
 path = (os.getcwd()+'/Data/clean_data.csv')
@@ -54,7 +61,7 @@ x_test = data[4]
 y_test = data[5]
 
 # get feature input from the user
-def get_user_input():
+def get_user_input_single():
     nem = st.slider('Puntaje NEM', 150, 850, 500)
     psu_len = st.slider('Puntaje PSU Lenguaje', 150, 850, 500)
     ing = st.selectbox(
@@ -86,6 +93,29 @@ def get_user_input():
     }
     return pd.DataFrame(user_data, index=[0])
 
+def get_user_input_mult():
+    mult_text = (
+        'Se debe entregar un archivo CSV con las siguientes columnas:'
+        'Tipo de Establecimiento, NEM, Puntaje PSU Lenguaje y Vía de'
+        'ingreso, en este orden.'
+        ' Las columnas no deben tener acentos'
+        ' Las opciones de las variables categóricas se pueden ver en el'
+        'ingreso de datos de un estidiante en particular. Hay que respetar letras'
+        'mayúsculas y acentos.\n'
+        'No ingresar datos vacíos, ni elementos identificadores de los alumnos,'
+        'para identificarlos se usará el índice.'
+    )
+    datos = st.file_uploader('Datos de los alumons', type='csv')
+    if datos is not None:
+        df_input = pd.read_csv(datos)
+        df_input.columns = df_input.columns.str.lower()
+        new_establecimiento = dict([(value, key) for key, value in dict_extablecimiento.items()])
+        new_ingreso = dict([(value, key) for key, value in dict_ingreso.items()])
+        df_input['tipo de establecimiento'].replace(new_establecimiento, inplace=True)
+        df_input['via de ingreso'].replace(new_ingreso, inplace=True)
+        return df_input
+    else:
+        return pd.DataFrame()
 
 # Create and train ML model
 kn = load(os.getcwd()+'/web_app/knneighbors.joblib')
@@ -106,34 +136,53 @@ st.write(str(round(relative_mean_width(y_test, lb_kn, ub_kn), 2) * 100) + '%')
 
 
 # predict users input
-user_features = get_user_input()
-st.subheader('Datos ingresados de el/la estudiante:')
-st.write(user_features)
-preds_user = adapted_kn.predict(user_features.values, 0.8)
-lb_user = preds_user[0]
-pred_user = preds_user[1]
-ub_user = preds_user[2]
+if single_mult == '1':
+    user_features = get_user_input_single()
+else:
+    user_features = get_user_input_mult()
+#
+if user_features.empty:
+    st.write('Aún no se han ingresado datos')
+else:
+    st.subheader('Datos ingresados de los estudiantes:')
+    st.write(user_features.head())
+    preds_user = adapted_kn.predict(user_features.values, 0.8)
+    lb_user = preds_user[0]
+    pred_user = preds_user[1]
+    ub_user = preds_user[2]
 
 # # display the students prediction
-st.subheader('Porcentaje de logro predicho:')
-st.write(str(round(pred_user[0] * 100, 2)) + '%')
-st.subheader('Límite inferior predicho:')
-st.write(str(round(lb_user[0]* 100, 2)) + '%')
-st.subheader('Límite superior predicho:')
-st.write(str(round(ub_user[0]* 100, 2)) + '%')
-
+if single_mult == '1':
+    st.subheader('Porcentaje de logro predicho:')
+    st.write(str(round(pred_user[0] * 100, 2)) + '%')
+    st.subheader('Límite inferior predicho:')
+    st.write(str(round(lb_user[0]* 100, 2)) + '%')
+    st.subheader('Límite superior predicho:')
+    st.write(str(round(ub_user[0]* 100, 2)) + '%')
+else:
+    if not user_features.empty:
+        user_features['prediccion de logro'] = np.around(pred_user*100, 2)
+        user_features['limite inferior'] = np.around(lb_user*100, 2)
+        user_features['limite superior'] = np.around(ub_user*100, 2)
 # Test Plot
-fig = go.Figure(data=[go.Surface(z=np.random.rand(30,20))])
-fig.update_layout(title='Plot Prueba', autosize=False,
-                  width=800, height=800,
-                  margin=dict(l=40, r=40, b=40, t=40))
-st.plotly_chart(fig)
+if single_mult == '1':
+    fig = go.Figure(data=[go.Surface(z=np.random.rand(30,20))])
+    fig.update_layout(title='Plot Prueba', autosize=False,
+                    width=800, height=800,
+                    margin=dict(l=40, r=40, b=40, t=40))
+    st.plotly_chart(fig)
+else:
+    if not user_features.empty:
+        # fig = ff.create_distplot(
+        #     user_features['prediccion de logro'],
+        #     'desempeño predicho'
+        # )
+        # st.plotly_chart(fig, user_container_width=True)
+        # Download Results
+        def get_table_download_link(df):
+            csv = df.to_csv(index=False)
+            b64 = base64.b64encode(csv.encode()).decode()  
+            href = f'<a href="data:file/csv;base64,{b64}" download="Resultados.csv">Descargar Resultados</a>'
+            return href
 
-# Download Results
-def get_table_download_link(df):
-    csv = df.to_csv(index=False)
-    b64 = base64.b64encode(csv.encode()).decode()  
-    href = f'<a href="data:file/csv;base64,{b64}" download="Resultados.csv">Descargar Resultados</a>'
-    return href
-
-st.markdown(get_table_download_link(df), unsafe_allow_html=True)
+        st.markdown(get_table_download_link(user_features), unsafe_allow_html=True)
